@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sniper Radar — Canlı</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0d0d0d; color: #e8e8e2; min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #222;
+    background: #111;
+  }
+  .logo { font-size: 15px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #888; animation: pulse 1.5s infinite; }
+  .live-dot.on { background: #22c55e; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .status-text { font-size: 12px; color: #666; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  select, button {
+    font-size: 12px; padding: 5px 12px; border-radius: 6px;
+    border: 1px solid #333; background: #1a1a1a; color: #ccc; cursor: pointer;
+  }
+  button:hover { background: #252525; }
+  .clear-btn { color: #888; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 1px; background: #1a1a1a; border-bottom: 1px solid #222;
+  }
+  .stat { padding: 10px 16px; background: #111; }
+  .stat-l { font-size: 10px; color: #555; margin-bottom: 4px; }
+  .stat-v { font-size: 18px; font-weight: 600; color: #e8e8e2; }
+  .stat-v.green { color: #22c55e; }
+  .stat-v.blue  { color: #60a5fa; }
+  .stat-v.red   { color: #f87171; }
+
+  #feed { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .card {
+    background: #141414; border: 1px solid #222; border-radius: 10px;
+    padding: 14px 16px; animation: slide-in .4s ease;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: #333; }
+  .card.hot { border-color: #dc2626; border-width: 1.5px; }
+  @keyframes slide-in {
+    from { opacity:0; transform: translateY(-8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .token-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .token-sub  { font-size: 11px; color: #555; margin-top: 3px; }
+  .age-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; background: #1a1a1a; color: #f87171;
+    border: 1px solid #2a1a1a; margin-bottom: 10px;
+  }
+  .score-ring {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  .ring-hot  { background: #1c0a0a; color: #f87171; border: 1.5px solid #dc2626; }
+  .ring-warm { background: #1a1400; color: #fbbf24; border: 1.5px solid #d97706; }
+  .ring-ok   { background: #0a1a0a; color: #4ade80; border: 1.5px solid #16a34a; }
+
+  .mets {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;
+  }
+  .met { background: #1a1a1a; border-radius: 6px; padding: 6px 8px; }
+  .met-l { font-size: 10px; color: #555; margin-bottom: 2px; }
+  .met-v { font-size: 12px; font-weight: 600; color: #ccc; }
+  .met-v.up { color: #22c55e; }
+  .met-v.dn { color: #f87171; }
+  .met-v.am { color: #fbbf24; }
+
+  .bars { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-lbl  { font-size: 10px; color: #555; width: 70px; flex-shrink: 0; }
+  .bar-trk  { flex: 1; height: 4px; background: #1f1f1f; border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width .5s ease; }
+  .bar-num  { font-size: 10px; font-weight: 600; width: 24px; text-align: right; flex-shrink: 0; }
+
+  .sigs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .sig  { font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+  .sig-good  { background: #0a1a0a; color: #4ade80; border: 1px solid #166534; }
+  .sig-smart { background: #0a0a1a; color: #60a5fa; border: 1px solid #1e3a5f; }
+  .sig-warn  { background: #1a1400; color: #fbbf24; border: 1px solid #854d0e; }
+  .sig-bad   { background: #1a0a0a; color: #f87171; border: 1px solid #7f1d1d; }
+
+  .card-footer { display: flex; gap: 6px; }
+  .foot-btn {
+    flex: 1; font-size: 11px; padding: 6px; border-radius: 6px;
+    border: 1px solid #2a2a2a; background: transparent; color: #666; cursor: pointer;
+  }
+  .foot-btn:hover { background: #1a1a1a; color: #ccc; }
+  .foot-btn.fire { border-color: #7f1d1d; color: #f87171; }
+  .foot-btn.fire:hover { background: #1a0a0a; }
+
+  .empty {
+    text-align: center; padding: 60px 20px;
+    color: #333; font-size: 13px; line-height: 1.8;
+  }
+  .empty span { font-size: 28px; display: block; margin-bottom: 12px; }
+
+  /* Ses butonu */
+  #soundBtn { font-size: 16px; padding: 5px 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="live-dot" id="dot"></span>
+    Sniper Radar
+  </div>
+  <div class="controls">
+    <span class="status-text" id="statusTxt">Bağlanılıyor...</span>
+    <select id="chainSel" onchange="reconnect()">
+      <option value="solana">Solana</option>
+      <option value="ethereum">Ethereum</option>
+      <option value="bsc">BSC</option>
+      <option value="base">Base</option>
+    </select>
+    <button id="soundBtn" title="Ses uyarısı">🔕</button>
+    <button class="clear-btn" onclick="clearFeed()">Temizle</button>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="stat-l">Toplam</div><div class="stat-v" id="sTot">0</div></div>
+  <div class="stat"><div class="stat-l">Smart Money</div><div class="stat-v blue" id="sSm">0</div></div>
+  <div class="stat"><div class="stat-l">Güçlü ≥75</div><div class="stat-v green" id="sHot">0</div></div>
+  <div class="stat"><div class="stat-l">Ortalama skor</div><div class="stat-v" id="sAvg">—</div></div>
+  <div class="stat"><div class="stat-l">Son sinyal</div><div class="stat-v" style="font-size:13px" id="sLast">—</div></div>
+</div>
+
+<div id="feed">
+  <div class="empty" id="emptyState">
+    <span>⚡</span>
+    Sunucuya bağlanılıyor...<br>
+    <small style="color:#2a2a2a">SERVER_URL değişkenini güncelleyin</small>
+  </div>
+</div>
+
+<audio id="alertSound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA..." type="audio/wav">
+</audio>
+
+<script>
+// ── Ayarlar ──────────────────────────────────────────────────
+const SERVER_URL = "http://localhost:3001"; // Railway URL'ini buraya yaz
+// ──────────────────────────────────────────────────────────────
+
+let evtSource = null;
+let soundOn   = false;
+let cards     = [];
+let totCount = 0, smCount = 0, hotCount = 0, scores = [];
+
+document.getElementById("soundBtn").onclick = () => {
+  soundOn = !soundOn;
+  document.getElementById("soundBtn").textContent = soundOn ? "🔔" : "🔕";
+};
+
+function fmt(n) {
+  if (!n && n !== 0) return "—";
+  if (n >= 1e6) return "$" + (n/1e6).toFixed(1) + "M";
+  if (n >= 1e3) return "$" + (n/1e3).toFixed(0) + "K";
+  return "$" + n.toFixed(0);
+}
+
+function barCol(s) {
+  return s >= 70 ? "#22c55e" : s >= 50 ? "#fbbf24" : "#f87171";
+}
+
+function ringCls(s) {
+  return s >= 75 ? "ring-hot" : s >= 55 ? "ring-warm" : "ring-ok";
+}
+
+function buildCard(p) {
+  const pc5s  = (p.pc5  >= 0 ? "+" : "") + p.pc5.toFixed(1)  + "%";
+  const pc1hs = (p.pc1h >= 0 ? "+" : "") + p.pc1h.toFixed(1) + "%";
+
+  const el = document.createElement("div");
+  el.className = "card" + (p.isHot ? " hot" : "");
+  el.innerHTML = `
+    <div class="card-top">
+      <div>
+        <div class="token-name">${p.name} ${p.isHot ? '<span style="font-size:10px;background:#2a0a0a;color:#f87171;padding:1px 6px;border-radius:4px;margin-left:6px">HOT</span>' : ""}</div>
+        <div class="token-sub">${p.ticker} · ${p.chain} · ${p.dex}</div>
+      </div>
+      <div class="score-ring ${ringCls(p.total)}">${p.total}</div>
+    </div>
+    <div class="age-pill">⏱ ${p.ageMin}dk önce listelendi</div>
+    <div class="mets">
+      <div class="met"><div class="met-l">Likidite</div><div class="met-v">${fmt(p.liq)}</div></div>
+      <div class="met"><div class="met-l">Vol 5dk</div><div class="met-v">${fmt(p.v5)}</div></div>
+      <div class="met"><div class="met-l">5dk değ.</div><div class="met-v ${p.pc5>=0?"up":"dn"}">${pc5s}</div></div>
+      <div class="met"><div class="met-l">Buy oranı</div><div class="met-v ${p.buyPct>60?"up":p.buyPct<40?"dn":"am"}">${p.buyPct}%</div></div>
+    </div>
+    <div class="bars">
+      ${[["Likidite",p.scores.liq],["Smart $",p.scores.smart],["TX Çeşit",p.scores.tx],["Momentum",p.scores.mom]].map(([l,s])=>`
+        <div class="bar-row">
+          <span class="bar-lbl">${l}</span>
+          <div class="bar-trk"><div class="bar-fill" style="width:${s}%;background:${barCol(s)}"></div></div>
+          <span class="bar-num" style="color:${barCol(s)}">${s}</span>
+        </div>`).join("")}
+    </div>
+    <div class="sigs">${p.signals.map(s=>`<span class="sig sig-${s.type}">${s.text}</span>`).join("")}</div>
+    <div class="card-footer">
+      <button class="foot-btn fire" onclick="window.open('${p.url}','_blank')">DexScreener ↗</button>
+      <button class="foot-btn" onclick="copyAddr('${p.id}')">Adresi kopyala</button>
+    </div>
+  `;
+  return el;
+}
+
+function copyAddr(addr) {
+  navigator.clipboard.writeText(addr).then(() => alert("Adres kopyalandı:\n" + addr));
+}
+
+function addCard(p) {
+  document.getElementById("emptyState")?.remove();
+  totCount++;
+  scores.push(p.total);
+  if (p.scores.smart >= 70) smCount++;
+  if (p.isHot) hotCount++;
+
+  document.getElementById("sTot").textContent  = totCount;
+  document.getElementById("sSm").textContent   = smCount;
+  document.getElementById("sHot").textContent  = hotCount;
+  document.getElementById("sAvg").textContent  = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  document.getElementById("sLast").textContent = new Date().toLocaleTimeString("tr-TR");
+
+  const feed = document.getElementById("feed");
+  const card = buildCard(p);
+  feed.prepend(card);
+  cards.push(card);
+
+  // Max 50 kart tut
+  if (cards.length > 50) { cards.shift().remove(); }
+
+  if (soundOn && p.isHot) {
+    // Basit beep
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(); osc.stop(ctx.currentTime + 0.4);
+  }
+}
+
+function clearFeed() {
+  document.getElementById("feed").innerHTML = "";
+  cards = []; totCount = 0; smCount = 0; hotCount = 0; scores = [];
+  ["sTot","sSm","sHot","sAvg","sLast"].forEach(id => document.getElementById(id).textContent = "0");
+}
+
+function setStatus(ok, txt) {
+  const dot = document.getElementById("dot");
+  dot.classList.toggle("on", ok);
+  document.getElementById("statusTxt").textContent = txt;
+}
+
+function connect() {
+  const chain = document.getElementById("chainSel").value;
+  const url   = `${SERVER_URL}/stream?chain=${chain}`;
+
+  if (evtSource) evtSource.close();
+  setStatus(false, "Bağlanılıyor...");
+
+  evtSource = new EventSource(url);
+
+  evtSource.addEventListener("pair", (e) => {
+    try { addCard(JSON.parse(e.data)); } catch(_) {}
+  });
+
+  evtSource.addEventListener("status", (e) => {
+    try {
+      const d = JSON.parse(e.data);
+      setStatus(d.connected, d.connected ? "Canlı — " + (d.source || "DexScreener") : "Bağlantı kesildi");
+    } catch(_) {}
+  });
+
+  evtSource.onerror = () => setStatus(false, "Bağlantı hatası — yeniden deniyor...");
+}
+
+function reconnect() { connect(); }
+connect();
+</script>
+</body>
+</html>
