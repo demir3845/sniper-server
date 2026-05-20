@@ -126,3 +126,5 @@ if (total < 52) return null;                   // Min toplam skor
 - Railway ücretsiz tier: 500 saat/ay (tek proje için yeterli)
 - Render.com veya Fly.io da kullanılabilir, kurulum aynı
 - Telegram bildirimi eklemek için `node-telegram-bot-api` paketi kullanılabilir
+
+v1.0
