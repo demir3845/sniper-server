@@ -39,7 +39,7 @@ function analyzePair(p) {
   if (!ageMs) return null;
 
   const ageMin = ageMs / 60000;
-  if (ageMin < 1 || ageMin > 15) return null;   // ← 1-15 dk filtresi
+  if (ageMin < 1 || ageMin > 30) return null;   // ← 1-15 dk filtresi
 
   const liq  = p.liquidity?.usd   || 0;
   const v5   = p.volume?.m5       || 0;
@@ -63,7 +63,7 @@ function analyzePair(p) {
           : vpt > 300  ? 55 : 22;
   if (b5 > s5 * 2)   smS = Math.min(smS + 12, 96);
   if (buyR > 0.65)   smS = Math.min(smS +  8, 96);
-  if (smS < 55) return null;          // ← Smart money eşiği sağlanmıyor → geç
+  if (smS < 40) return null;          // ← Smart money eşiği sağlanmıyor → geç
 
   // TX çeşitlilik skoru
   let txS = tx1h > 300 ? 88 : tx1h > 100 ? 75 : tx1h > 40 ? 60
@@ -77,7 +77,7 @@ function analyzePair(p) {
   if (pc1h < -15) momS = Math.max(momS - 20, 10);
 
   const total = Math.round(liqS * 0.28 + txS * 0.22 + smS * 0.28 + momS * 0.22);
-  if (total < 52) return null;
+  if (total < 45) return null;
 
   // Sinyal listesi
   const signals = [];
